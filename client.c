@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/epoll.h>
 
 void error(char *msg)
 {
@@ -18,9 +19,9 @@ void error(char *msg)
 int main(int argc, char* argv[])
 {
   // create socket
-  int sockfd, portno, n;
+  int sockfd, portno, n, epollfd, nfds;
   struct sockaddr_in serv_addr;
-  // struct hostent *server;
+  struct epoll_event ev;
 
   char buffer[256];
   if (argc < 3) {
@@ -32,11 +33,6 @@ int main(int argc, char* argv[])
   if (sockfd < 0)
     error("ERROR opening socket");
 
-  // server = gethostbyname(argv[1]);
-  // if (server == NULL) {
-  //     fprintf(stderr,"ERROR, no such host\n");
-  //     exit(0);
-  // }
 
   bzero((char *) &serv_addr, sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
@@ -47,19 +43,51 @@ int main(int argc, char* argv[])
   getchar();
   if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
     error("ERROR connecting");
-  printf("Please enter the message: ");
-  bzero(buffer,256);
-  fgets(buffer,255,stdin);
+
+  if( recv(sockfd , buffer , 256 , 0) < 0)
+  {
+    puts("recv failed");
+    return 0;
+  }
+
+  puts(buffer);
+
+  // epollfd = epoll_create1(0);
+  // if (epollfd == -1)
+  // {
+  //   perror("epoll_create1");
+  //   exit(EXIT_FAILURE);
+  // }
+  // ev.events = EPOLLIN | EPOLLOUT;
+  // if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
+  // {
+  //   perror("epoll_ctl: listen_sock");
+  //   exit(EXIT_FAILURE);
+  // }
 
 
-  n = write(sockfd,buffer,strlen(buffer));
-  if (n < 0)
-    error("ERROR writing to socket");
-  bzero(buffer,256);
-  n = read(sockfd,buffer,255);
-  if (n < 0)
-    error("ERROR reading from socket");
-  printf("%s\n",buffer);
+  // while(1)
+  // {
+    fgets(buffer,255,stdin);
+
+    //Send some data
+    if( send(sockfd , buffer , strlen(buffer) , 0) < 0)
+    {
+        puts("Send failed");
+        return 1;
+    }
+
+    // //Receive a reply from the server
+    // if( recv(sockfd , buffer , 256 , 0) < 0)
+    // {
+    //     puts("recv failed");
+    //     break;
+    // }
+    // puts(buffer);
+
+   // }
+
+  close(sockfd);
   return 0;
 
 }
