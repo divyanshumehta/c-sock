@@ -10,7 +10,12 @@
 #include<pthread.h>
 #include <mysql/mysql.h>
 
-void error(char *msg)
+struct booking {
+    char username[31], id[11];
+    int reservation_time, people;
+};
+
+void error(const char *msg)
 {
     perror(msg);
     exit(1);
@@ -44,42 +49,69 @@ void *connection_handler(void *socket_desc)
     //Send some messages to the client
     while(1)
     {
+      // Send Menu
       strcpy(message,"Greetings! Welcome to E-Sim Hotel\nI am your booking handler\n");
       strcat(message,"Enter 1. to make a booking\n");
       strcat(message,"Enter 2. to cancel existing booking\n");
       strcat(message,"Enter 3. to quit\n");
       strcat(message,"Choice: ");
-      send(sock , message , strlen(message), 0);
+      write(sock , message , strlen(message));
 
-      read_size = recv(sock , client_message , 2000 , 0);
-      if(read_size == 0)
-      {
-          puts("Client disconnected");
-          fflush(stdout);
-          break;
-      }
-      else if(read_size == -1)
-      {
-          perror("recv failed");
-          break;
-      }
-      int res = atoi(client_message);
+      // Response for booking/cancellation
+      read_size = read(sock , client_message , 2000);
+      printf("client message: '%s'\n", client_message);
+      int res=atoi(client_message);
       if(res==1)
       {
-        puts("booking done");
-        fflush(stdout);
+        strcpy(message, "You have opted to make a booking");
+        strcat(message, "\nEnter your Name: ");
+        write(sock, message, strlen(message) + 1);
+
+        // Read name
+        read_size =  read(sock , client_message , 2000);
+        printf("client message: '%s'\n", client_message);
+
+        struct booking new_booking;
+        strcpy(new_booking.username,client_message);
+
+
+        // Send and get table details
+        strcpy(message, "Number of Seats: ");
+        write(sock, message, strlen(message) + 1);
+        read_size = read(sock , client_message , 2000);
+        client_message[read_size]=0;
+        printf("client message: '%s'\n", client_message);
+
+        // Send and get time details
+        strcpy(message, "Reservation Time(24hours) e.g 1200: ");
+        write(sock, message, strlen(message) + 1);
+        read_size = read(sock , client_message , 2000);
+        client_message[read_size]=0;
+        printf("client message: '%s'\n", client_message);
+        // printf("%s\n", "Hey");
+
+        // Save to DB
+
+        // Send booking confirmation
+        strcpy(new_booking.id,"ACsr3");
+        strcpy(message, "Reservation made Booking Id: ");
+        strcat(message, new_booking.id);
+        printf("%s\n",message);
+        write(sock, message, strlen(message));
+
       }
       else if(res==2)
       {
-        puts("booking cancelled");
-        fflush(stdout);
+        strcpy(message, "Recieved");
+        write(sock, message, strlen(message) + 1);
       }
       else
       {
-        puts("Close");
-        fflush(stdout);
-      }
+        strcpy(message, "SOCKTERM");
+        write(sock, message, strlen(message) + 1);
 
+      }
+      printf("%s\n", "****LOOP*****");
     }
 
     //Free the socket pointer
@@ -134,9 +166,9 @@ int main(int argc, char *argv[])
 
     for(i=0;i<10;++i)
     {
-      newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+      newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, (socklen_t *)&clilen);
 
-      int *new_sock = malloc(sizeof(int *));
+      int *new_sock = (int *)malloc(sizeof(int *));
       *new_sock = newsockfd;
       struct sockaddr_in* pV4Addr = (struct sockaddr_in*)&new_sock;
       struct in_addr ipAddr = pV4Addr->sin_addr;

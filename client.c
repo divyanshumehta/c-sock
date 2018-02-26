@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include <sys/epoll.h>
 
-void error(char *msg)
+void error(const char *msg)
 {
     perror(msg);
     exit(0);
@@ -19,11 +19,11 @@ void error(char *msg)
 int main(int argc, char* argv[])
 {
   // create socket
-  int sockfd, portno, n, epollfd, nfds;
+  int sockfd, portno, n, epollfd, nfds, read_size;
   struct sockaddr_in serv_addr;
   struct epoll_event ev;
 
-  char buffer[256];
+  char buffer[2000];
   if (argc < 3) {
     fprintf(stderr,"Usage %s [HOSTNAME] [PORT]\n", argv[0]);
     exit(0);
@@ -39,53 +39,73 @@ int main(int argc, char* argv[])
   // bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
   serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
   serv_addr.sin_port = htons(portno);
-  printf("Want to connect to %s. Hit any key to continue \nor Ctrl+C to exit",argv[1]);
-  getchar();
+  // printf("Want to connect to %s. Hit any key to continue \nor Ctrl+C to exit",argv[1]);
+  // getchar();
   if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
     error("ERROR connecting");
+  //
 
-  if( recv(sockfd , buffer , 256 , 0) < 0)
+  while(1)
   {
-    puts("recv failed");
-    return 0;
-  }
-
-  puts(buffer);
-
-  // epollfd = epoll_create1(0);
-  // if (epollfd == -1)
-  // {
-  //   perror("epoll_create1");
-  //   exit(EXIT_FAILURE);
-  // }
-  // ev.events = EPOLLIN | EPOLLOUT;
-  // if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
-  // {
-  //   perror("epoll_ctl: listen_sock");
-  //   exit(EXIT_FAILURE);
-  // }
-
-
-  // while(1)
-  // {
-    fgets(buffer,255,stdin);
-
-    //Send some data
-    if( send(sockfd , buffer , strlen(buffer) , 0) < 0)
+    // Get menu
+    if( read(sockfd , buffer , 2000) < 0)
     {
-        puts("Send failed");
-        return 1;
+      puts("recv failed");
+      return 0;
     }
+    printf("%s",buffer);
 
-    // //Receive a reply from the server
-    // if( recv(sockfd , buffer , 256 , 0) < 0)
-    // {
-    //     puts("recv failed");
-    //     break;
-    // }
-    // puts(buffer);
+    // Send menu reponse
+    char response[2000];
+    fgets(response,2000,stdin);
+    response[strlen(response) - 1] = 0;
+    int res=atoi(response);
+    send(sockfd , response , strlen(response) , 0);
 
-   // }
+    // Get details for booking/cancellation
+    read(sockfd , buffer , 2000);
+    if(strcmp(buffer,"SOCKTERM")==0)
+    {
+      printf("Thank You for visiting eSim Hotel\n");
+      close(sockfd);
+      return 0;
+
+    }
+    printf("%s", buffer);
+
+    // send details for booking/cancellation
+    if(res==1)
+    {
+      // Send name
+      fgets(response,2000,stdin);
+      response[strlen(response) - 1] = 0;
+      send(sockfd , response , strlen(response) , 0);
+
+      // Get and Send table details
+      read(sockfd , buffer , 2000);
+      printf("%s",buffer);
+      fgets(response,2000,stdin);
+      response[strlen(response) - 1] = 0;
+      send(sockfd , response , strlen(response) , 0);
+
+      // Get and Send time
+      read(sockfd , buffer , 2000);
+      printf("%s",buffer);
+      fgets(response,2000,stdin);
+      response[strlen(response) - 1] = 0;
+      send(sockfd , response , strlen(response) , 0);
+
+      // Get booking status
+      read(sockfd , buffer , 2000);
+      printf("%s",buffer);
+
+    }
+    else
+    {
+
+    }
+    printf("\n%s\n","Returning to main menu. Press Enter to continue" );
+   }
 
   close(sockfd);
   return 0;
