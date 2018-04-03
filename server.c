@@ -47,6 +47,7 @@ void *connection_handler(void *socket_desc)
 
 
     //Send some messages to the client
+    int i=1;
     while(1)
     {
       // Send Menu
@@ -55,12 +56,13 @@ void *connection_handler(void *socket_desc)
       strcat(message,"Enter 2. to cancel existing booking\n");
       strcat(message,"Enter 3. to quit\n");
       strcat(message,"Choice: ");
-      write(sock , message , strlen(message));
+      write(sock , message , strlen(message)+1);
 
       // Response for booking/cancellation
-      read_size = read(sock , client_message , 2000);
-      printf("client message: '%s'\n", client_message);
+      read(sock , client_message , 2000);
+      printf("client %dth message: '%s'\n", i++,client_message);
       int res=atoi(client_message);
+      // printf("%d",res);
       if(res==1)
       {
         strcpy(message, "You have opted to make a booking");
@@ -68,9 +70,9 @@ void *connection_handler(void *socket_desc)
         write(sock, message, strlen(message) + 1);
 
         // Read name
-        read_size =  read(sock , client_message , 2000);
-        printf("client message: '%s'\n", client_message);
-
+        read(sock , client_message , 2000);
+        printf("client name: '%s'\n", client_message);
+        printf("1\n");
         struct booking new_booking;
         strcpy(new_booking.username,client_message);
 
@@ -80,32 +82,35 @@ void *connection_handler(void *socket_desc)
         write(sock, message, strlen(message) + 1);
         read_size = read(sock , client_message , 2000);
         client_message[read_size]=0;
-        printf("client message: '%s'\n", client_message);
+        printf("client name: '%s'\n", client_message);
+        printf("12\n" );
 
         // Send and get time details
         strcpy(message, "Reservation Time(24hours) e.g 1200: ");
         write(sock, message, strlen(message) + 1);
         read_size = read(sock , client_message , 2000);
         client_message[read_size]=0;
-        printf("client message: '%s'\n", client_message);
+        printf("client name: '%s'\n", client_message);
         // printf("%s\n", "Hey");
-
-        // Save to DB
-
-        // Send booking confirmation
+      //
+      //   // Save to DB
+      //
+      //   // Send booking confirmation
         strcpy(new_booking.id,"ACsr3");
         strcpy(message, "Reservation made Booking Id: ");
         strcat(message, new_booking.id);
-        printf("%s\n",message);
+        // printf("%s\n",message);
+        strcat(message, "\nReturning to Main Menu...\n");
         write(sock, message, strlen(message));
-
+        // read(sock, client_message, 2000);
+      //
       }
       else if(res==2)
       {
         strcpy(message, "Recieved");
         write(sock, message, strlen(message) + 1);
       }
-      else
+      else if (res == 3)
       {
         strcpy(message, "SOCKTERM");
         write(sock, message, strlen(message) + 1);

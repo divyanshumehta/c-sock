@@ -8,11 +8,18 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/epoll.h>
+#include <time.h>
 
 void error(const char *msg)
 {
     perror(msg);
     exit(0);
+}
+
+void delay(unsigned int mseconds)
+{
+    clock_t goal = mseconds + clock();
+    while (goal > clock());
 }
 
 
@@ -39,12 +46,13 @@ int main(int argc, char* argv[])
   // bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
   serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
   serv_addr.sin_port = htons(portno);
-  // printf("Want to connect to %s. Hit any key to continue \nor Ctrl+C to exit",argv[1]);
-  // getchar();
+  printf("Want to connect to %s. Hit any key to continue \nor Ctrl+C to exit",argv[1]);
+  getchar();
   if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
     error("ERROR connecting");
   //
 
+  char response[2000];
   while(1)
   {
     // Get menu
@@ -55,15 +63,7 @@ int main(int argc, char* argv[])
     }
     printf("%s",buffer);
 
-    // Send menu reponse
-    char response[2000];
-    fgets(response,2000,stdin);
-    response[strlen(response) - 1] = 0;
-    int res=atoi(response);
-    send(sockfd , response , strlen(response) , 0);
-
-    // Get details for booking/cancellation
-    read(sockfd , buffer , 2000);
+    // Check for client close
     if(strcmp(buffer,"SOCKTERM")==0)
     {
       printf("Thank You for visiting eSim Hotel\n");
@@ -71,40 +71,54 @@ int main(int argc, char* argv[])
       return 0;
 
     }
-    printf("%s", buffer);
 
-    // send details for booking/cancellation
-    if(res==1)
-    {
-      // Send name
-      fgets(response,2000,stdin);
-      response[strlen(response) - 1] = 0;
-      send(sockfd , response , strlen(response) , 0);
+    // Send menu reponse
+    scanf("%[^\n]%*c", response );
+    // printf("%s",response);
+    int res=atoi(response);
+    send(sockfd , response , strlen(response)+1 , 0);
+    printf("**Looping**");
 
-      // Get and Send table details
-      read(sockfd , buffer , 2000);
-      printf("%s",buffer);
-      fgets(response,2000,stdin);
-      response[strlen(response) - 1] = 0;
-      send(sockfd , response , strlen(response) , 0);
-
-      // Get and Send time
-      read(sockfd , buffer , 2000);
-      printf("%s",buffer);
-      fgets(response,2000,stdin);
-      response[strlen(response) - 1] = 0;
-      send(sockfd , response , strlen(response) , 0);
-
-      // Get booking status
-      read(sockfd , buffer , 2000);
-      printf("%s",buffer);
-
-    }
-    else
-    {
-
-    }
-    printf("\n%s\n","Returning to main menu. Press Enter to continue" );
+    // Get details for booking/cancellation
+    // read(sockfd , buffer , 2000);
+    // printf("%s", buffer);
+    //
+    // // send details for booking/cancellation
+    // if(res==1)
+    // {
+    //   // Send name
+    //   fgets(response,2000,stdin);
+    //   response[strlen(response) - 1] = 0;
+    //   send(sockfd , response , strlen(response) , 0);
+    //
+    //   // Get and Send table details
+    //   read(sockfd , buffer , 2000);
+    //   printf("%s",buffer);
+    //   fgets(response,2000,stdin);
+    //   response[strlen(response) - 1] = 0;
+    //   send(sockfd , response , strlen(response) , 0);
+    //
+    //   // Get and Send time
+    //   read(sockfd , buffer , 2000);
+    //   printf("%s",buffer);
+    //   fgets(response,2000,stdin);
+    //   response[strlen(response) - 1] = 0;
+    //   printf("%s\n",response);
+    //   send(sockfd , response , strlen(response) , 0);
+    //
+    //   // Get booking status
+    //   // read(sockfd , buffer , 2000);
+    //   // printf("%s",buffer);
+    //   // printf("Press Enter to continue..");
+    //   // getchar();
+    //   // send(sockfd , response , strlen(response) , 0);
+    //
+    //
+    // }
+    // // else
+    // // {
+    // //
+    // // }
    }
 
   close(sockfd);
