@@ -11,9 +11,11 @@
 #include <mysql/mysql.h>
 
 struct booking {
-    char username[31], id[11];
-    int reservation_time, people;
-};
+    char username[31];
+    int reservation_start_time, reservation_end_time, people, reservation_id;
+} db[100];
+
+int db_head;
 
 void error(const char *msg)
 {
@@ -28,22 +30,6 @@ void *connection_handler(void *socket_desc)
     int sock = *(int*)socket_desc;
     int read_size;
     char message[2000] , client_message[2000];
-
-    // Open DB connection
-    // MYSQL *con = mysql_init(NULL);
-    //
-    // if (con == NULL)
-    // {
-    //     fprintf(stderr, "%s\n", mysql_error(con));
-    //     exit(1);
-    // }
-    //
-    // if (mysql_real_connect(con, "localhost", "root", "jharvard",NULL, 0, NULL, 0) == NULL)
-    // {
-    //     fprintf(stderr, "%s\n", mysql_error(con));
-    //     mysql_close(con);
-    //     exit(1);
-    // }
 
 
     //Send some messages to the client
@@ -84,21 +70,34 @@ void *connection_handler(void *socket_desc)
         client_message[read_size]=0;
         printf("client name: '%s'\n", client_message);
         printf("12\n" );
+        new_booking.people = atoi(client_message);
 
-        // Send and get time details
-        strcpy(message, "Reservation Time(24hours) e.g 1200: ");
+        // Send and get start time details
+        strcpy(message, "Reservation Start Time(24hours) e.g 1200: ");
         write(sock, message, strlen(message) + 1);
         read_size = read(sock , client_message , 2000);
         client_message[read_size]=0;
         printf("client name: '%s'\n", client_message);
-        // printf("%s\n", "Hey");
-      //
-      //   // Save to DB
-      //
-      //   // Send booking confirmation
-        strcpy(new_booking.id,"ACsr3");
+        new_booking.reservation_start_time = atoi(client_message);
+
+        //Send and get end time
+        strcpy(message, "Reservation End Time(24hours) e.g 1200: ");
+        write(sock, message, strlen(message) + 1);
+        read_size = read(sock , client_message , 2000);
+        client_message[read_size]=0;
+        printf("client name: '%s'\n", client_message);
+        new_booking.reservation_end_time = atoi(client_message);
+
+        // Save to DB
+        new_booking.reservation_id = db_head;
+        db[db_head] = new_booking;
+        db_head++;
+
+        // Send booking confirmation
         strcpy(message, "Reservation made Booking Id: ");
-        strcat(message, new_booking.id);
+        char reservation_id[5];
+        sprintf(reservation_id, "%d", new_booking.reservation_id);
+        strcat(message, reservation_id);
         // printf("%s\n",message);
         strcat(message, "\nReturning to Main Menu...\n");
         write(sock, message, strlen(message));
